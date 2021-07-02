@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        
+        {% block title %}
+            The Last Social Media You'll Ever Need
+        {% endblock %} | Yatube
+            
+    </title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}">
+    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+    <script src="{% static 'bootstrap/dist/js/bootstrap.min.js' %}"></script>
+</head>
+<body>
+
+    {% include 'nav.html' %}
+    <main>
+        <div class="container">
+            <h1>
+            {% block header %}
+            {% endblock %}
+            </h1>
+            {% block content %}
+            {% endblock %} 
+        </div>
+    </main>
+    {% include 'footer.html' %}
+
+</body>
+</html>
