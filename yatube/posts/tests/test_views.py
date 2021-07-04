@@ -1,6 +1,5 @@
-from time import sleep
-
 from django import forms
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -169,7 +168,10 @@ class ViewsTests(TestCase):
 
     def test_cache(self):
         resp = self.quest_client.get(reverse('posts:index'))
-        index_page = resp.context.get('page')
-        sleep(2)
-        index_page_cache = resp.context.get('page')
-        self.assertEqual(index_page, index_page_cache)
+        content = resp.content
+        Post.objects.all().delete()
+        resp = self.quest_client.get(reverse('posts:index'))
+        self.assertEqual(content, resp.content, 'Кеширование не работает')
+        cache.clear()
+        resp = self.quest_client.get(reverse('posts:index'))
+        self.assertNotEqual(content, resp.content)

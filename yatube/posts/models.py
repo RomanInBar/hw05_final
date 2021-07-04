@@ -44,12 +44,16 @@ class Comment(models.Model):
         Post, on_delete=models.CASCADE, related_name='comments'
     )
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name='comments'
+        User, on_delete=models.CASCADE, related_name='comments'
     )
     text = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
 
 
 class Follow(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='follower')
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='follower'
+    )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='following'
+    )
