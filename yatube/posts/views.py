@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import CommentsForm, PostForm
-from .models import Group, Post, User
+from .models import Follow, Group, Post, User
 
 
 def index(request):
@@ -31,7 +31,11 @@ def profile(request, username):
     paginator = Paginator(posts, 10)
     page_num = request.GET.get('page')
     page = paginator.get_page(page_num)
-    context = {'author': author, 'page': page}
+    is_following = (
+        request.user.is_authenticated
+        and Follow.objects.filter(user=request.user, author=author).exists()
+    )
+    context = {'author': author, 'page': page, 'is_following': is_following}
     return render(request, 'posts/profile.html', context)
 
 
@@ -95,10 +99,31 @@ def add_comment(request, username, post_id):
 
 @login_required
 def follow_index(request):
-    authors = request.user.following.all()
-    authors_id = [x.author.id for x in authors]
-    posts = Post.objects.filter(author_id__in=authors_id)
-    paginator = Paginator(posts, 10)
+    post_list = Post.objects.filter(
+        author__following__user=request.user
+    )
+    paginator = Paginator(post_list, 10)
     page_num = request.GET.get('page')
     page = paginator.get_page(page_num)
     return render(request, 'posts/follow.html', {'page': page})
+
+
+@login_required
+def profile_follow(request, username):
+    author = get_object_or_404(User, username=username)
+    if (
+        request.user == author
+        or Follow.objects.filter(user=request.user, author=author).exists()
+    ):
+        return redirect('posts:profile', username=username)
+    Follow.objects.create(user=request.user, author=author)
+    return redirect('posts:profile', username=username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    author = get_object_or_404(User, username=username)
+    follow = Follow.objects.filter(user=request.user, author=author)
+    if follow.exists():
+        follow.delete()
+    return redirect('posts:profile', username)
