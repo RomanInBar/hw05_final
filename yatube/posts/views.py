@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import CommentsForm, PostForm
+from .forms import CommentForm, PostForm
 from .models import Follow, Group, Post, User
 
 
@@ -42,7 +42,7 @@ def profile(request, username):
 def post_view(request, username, post_id):
     post = get_object_or_404(Post, id=post_id, author__username=username)
     comments = post.comments.all()
-    form = CommentsForm()
+    form = CommentForm()
     context = {'post': post, 'comments': comments, 'form': form}
 
     return render(request, 'posts/post.html', context)
@@ -68,7 +68,9 @@ def post_edit(request, username, post_id):
     if form.is_valid():
         form.save()
         return redirect('posts:post', username, post_id)
-    return render(request, 'posts/new_edit_post.html', {'form': form})
+    return render(
+        request, 'posts/new_edit_post.html', {'form': form, 'post': post}
+    )
 
 
 def page_not_found(request, exception):
@@ -89,7 +91,7 @@ def server_error(request):
 @login_required
 def add_comment(request, username, post_id):
     comment = get_object_or_404(Post, id=post_id, author__username=username)
-    form = CommentsForm(request.POST or None)
+    form = CommentForm(request.POST or None)
     if form.is_valid():
         post = form.save(commit=False)
         post.author = request.user
@@ -100,9 +102,7 @@ def add_comment(request, username, post_id):
 
 @login_required
 def follow_index(request):
-    post_list = Post.objects.filter(
-        author__following__user=request.user
-    )
+    post_list = Post.objects.filter(author__following__user=request.user)
     paginator = Paginator(post_list, 10)
     page_num = request.GET.get('page')
     page = paginator.get_page(page_num)
