@@ -1,9 +1,11 @@
+from http import HTTPStatus
+
 from django import forms
 from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from posts.models import Follow, Group, Post, User
+from posts.models import Comment, Follow, Group, Post, User
 
 
 class ViewsTests(TestCase):
@@ -11,6 +13,7 @@ class ViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='user')
+        cls.user_2 = User.objects.create_user(username='user_2')
         cls.author = User.objects.create_user(username='Bob')
         cls.group = Group.objects.create(
             title='текст', slug='slug', description='Это просто очередной тест'
@@ -30,9 +33,11 @@ class ViewsTests(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
+        self.auth_client_2 = Client()
         self.quest_client = Client()
         self.Bob = Client()
         self.auth_client.force_login(ViewsTests.user)
+        self.auth_client_2.force_login(ViewsTests.user_2)
         self.Bob.force_login(ViewsTests.author)
 
     def test_page_use_correct_templates(self):
@@ -183,8 +188,7 @@ class ViewsTests(TestCase):
     def test_user_can_follow(self):
         """Возможность подписки авторизованным пользователем."""
         self.auth_client.post(
-            reverse("posts:profile_follow", args=[self.author]),
-            follow=True,
+            reverse("posts:profile_follow", args=[self.author]), follow=True
         )
         follow = Follow.objects.first()
         self.assertEqual(Follow.objects.count(), 1)
@@ -192,21 +196,52 @@ class ViewsTests(TestCase):
         self.assertEqual(follow.user, self.user)
 
     def test_new_post_for_followers(self):
-        Follow.objects.create(
-            user=self.user,
-            author=self.author
-        )
+        """
+        Новая запись пользователя появляется в ленте тех,
+        кто на него подписан и не появляется в ленте тех,
+        кто не подписан на него.
+        """
+        Follow.objects.create(user=self.user, author=self.author)
         form_data = {
             'text': 'New Post',
             'author_id': self.author.id,
             'group_id': self.group.id,
         }
-        self.Bob.post(
-            reverse('posts:new_post'),
-            data=form_data,
-            follow=True
-        )
+        self.Bob.post(reverse('posts:new_post'), data=form_data, follow=True)
         first_post = Post.objects.first()
         resp = self.auth_client.get(reverse('posts:follow_index'))
-        print(resp.content.keys())
-        # self.assertEqual(post, first_post)
+        resp_2 = self.auth_client_2.get(reverse('posts:follow_index'))
+        post = resp.context['page'].object_list[0]
+        post_2 = resp_2.context['page'].object_list
+        self.assertEqual(post, first_post)
+        self.assertEqual(len(post_2), 0)
+
+    def test_auth_client_can_comment(self):
+        resp = self.auth_client_2.post(
+            reverse(
+                'posts:add_comment', args=[self.user.username, self.post.id]
+            ),
+            data={
+                'post': self.post.id,
+                'author_id': self.user.id,
+                'text': 'New comment',
+            },
+            follow=True,
+        )
+        comment = resp.context['comments'].first()
+        self.assertEqual(resp.status_code, HTTPStatus.OK)
+        self.assertEqual(comment.text, 'New comment')
+        self.assertEqual(comment.author.id, self.user_2.id)
+        self.assertEqual(comment.post.id, self.post.id)
+        self.assertEqual(comment.created, Comment.objects.first().created)
+
+    def test_quest_comment(self):
+        resp = self.quest_client.post(
+            reverse(
+                'posts:add_comment', args=[self.user.username, self.post.id]
+            )
+        )
+        self.assertRedirects(
+            resp,
+            f'/auth/login/?next=/{self.user.username}/{self.post.id}/comment',
+        )

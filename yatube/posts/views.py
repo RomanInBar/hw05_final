@@ -86,6 +86,7 @@ def server_error(request):
     )
 
 
+@login_required
 def add_comment(request, username, post_id):
     comment = get_object_or_404(Post, id=post_id, author__username=username)
     form = CommentsForm(request.POST or None)
