@@ -90,7 +90,7 @@ class StaticURLTests(TestCase):
             auth_no_author,
             reverse('posts:post', args=[self.user.username, self.post.id]),
             HTTPStatus.FOUND,
-            HTTPStatus.OK
+            HTTPStatus.OK,
         )
 
     def test_error_404(self):

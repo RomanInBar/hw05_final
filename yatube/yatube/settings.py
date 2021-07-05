@@ -6,12 +6,7 @@ SECRET_KEY = "we9z##ja1#n#!dn*$pf5e1*3sbjweuz0pa*tmxm6n6@ib9^sdx"
 
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "[::1]",
-    "testserver",
-]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", "testserver"]
 
 INSTALLED_APPS = [
     "posts.apps.PostsConfig",
@@ -70,7 +65,9 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
     },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"
+    },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"
     },
@@ -101,7 +98,5 @@ EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_emails")
 
 CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache"
-    }
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
 }
