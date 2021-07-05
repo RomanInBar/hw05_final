@@ -3,7 +3,7 @@ from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from posts.models import Group, Post, User
+from posts.models import Follow, Group, Post, User
 
 
 class ViewsTests(TestCase):
@@ -11,6 +11,7 @@ class ViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='user')
+        cls.author = User.objects.create_user(username='Bob')
         cls.group = Group.objects.create(
             title='текст', slug='slug', description='Это просто очередной тест'
         )
@@ -30,7 +31,9 @@ class ViewsTests(TestCase):
     def setUp(self):
         self.auth_client = Client()
         self.quest_client = Client()
+        self.Bob = Client()
         self.auth_client.force_login(ViewsTests.user)
+        self.Bob.force_login(ViewsTests.author)
 
     def test_page_use_correct_templates(self):
         """Соответствие шаблонов к url через вызов view."""
@@ -167,11 +170,43 @@ class ViewsTests(TestCase):
         self.assertEqual(len(resp.context.get('page').object_list), 7)
 
     def test_cache(self):
+        """Проверка кэша."""
         resp = self.quest_client.get(reverse('posts:index'))
         content = resp.content
         Post.objects.all().delete()
         resp = self.quest_client.get(reverse('posts:index'))
-        self.assertEqual(content, resp.content, 'Кеширование не работает')
+        self.assertEqual(content, resp.content)
         cache.clear()
         resp = self.quest_client.get(reverse('posts:index'))
         self.assertNotEqual(content, resp.content)
+
+    def test_user_can_follow(self):
+        """Возможность подписки авторизованным пользователем."""
+        self.auth_client.post(
+            reverse("posts:profile_follow", args=[self.author]),
+            follow=True,
+        )
+        follow = Follow.objects.first()
+        self.assertEqual(Follow.objects.count(), 1)
+        self.assertEqual(follow.author, self.author)
+        self.assertEqual(follow.user, self.user)
+
+    def test_new_post_for_followers(self):
+        Follow.objects.create(
+            user=self.user,
+            author=self.author
+        )
+        form_data = {
+            'text': 'New Post',
+            'author_id': self.author.id,
+            'group_id': self.group.id,
+        }
+        self.Bob.post(
+            reverse('posts:new_post'),
+            data=form_data,
+            follow=True
+        )
+        first_post = Post.objects.first()
+        resp = self.auth_client.get(reverse('posts:follow_index'))
+        print(resp.content.keys())
+        # self.assertEqual(post, first_post)
