@@ -90,13 +90,13 @@ def server_error(request):
 
 @login_required
 def add_comment(request, username, post_id):
-    comment = get_object_or_404(Post, id=post_id, author__username=username)
+    post = get_object_or_404(Post, id=post_id, author__username=username)
     form = CommentForm(request.POST or None)
     if form.is_valid():
-        post = form.save(commit=False)
-        post.author = request.user
-        post.post = comment
-        post.save()
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
     return redirect('posts:post', username, post_id)
 
 
@@ -117,14 +117,12 @@ def profile_follow(request, username):
         or Follow.objects.filter(user=request.user, author=author).exists()
     ):
         return redirect('posts:profile', username=username)
-    Follow.objects.create(user=request.user, author=author)
+    Follow.objects.get_or_create(user=request.user, author=author)
     return redirect('posts:profile', username=username)
 
 
 @login_required
 def profile_unfollow(request, username):
-    author = get_object_or_404(User, username=username)
-    follow = Follow.objects.filter(user=request.user, author=author)
-    if follow.exists():
-        follow.delete()
+    follow = Follow.objects.filter(user=request.user, author__username=username)
+    follow.delete()
     return redirect('posts:profile', username)

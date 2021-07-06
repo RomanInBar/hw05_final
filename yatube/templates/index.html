@@ -6,12 +6,12 @@
 {% block header %}Последние обновления на сайте{% endblock %}
 
 {% block content %}
+    {% include "posts/includes/menu.html" with index=True%}
     {% cache 20 index_page %}
-    {% include "posts/includes/menu.html" %}
     {% for post in page %}    
         {% include "posts/post_item.html" with post=post %}
     {% endfor %}
-    {% include "paginator.html" with item=page paginator=paginator %}
+    {% include "paginator.html" %}
     {% endcache %}
 {% endblock %}
 

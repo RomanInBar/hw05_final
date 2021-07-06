@@ -9,9 +9,9 @@ class AboutTestViews(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username="Bob")
+        cls.user = User.objects.create_user(username='Bob')
         cls.post = Post.objects.create(
-            text="Какой-то текст", author_id=cls.user.id
+            text='Какой-то текст', author_id=cls.user.id
         )
 
     def setUp(self):
@@ -24,8 +24,8 @@ class AboutTestViews(TestCase):
         и отображения страниц.
         """
         request_urls = {
-            "/about/author/": (HTTPStatus.OK, "about/author.html"),
-            "/about/tech/": (HTTPStatus.OK, "about/tech.html"),
+            '/about/author/': (HTTPStatus.OK, 'about/author.html'),
+            '/about/tech/': (HTTPStatus.OK, 'about/tech.html'),
         }
 
         for url, value in request_urls.items():

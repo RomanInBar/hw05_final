@@ -1,8 +1,13 @@
+import shutil
+import tempfile
+
 from http import HTTPStatus
 
 from django import forms
+from django.conf import settings
 from django.core.cache import cache
 from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from posts.models import Comment, Follow, Group, Post, User
@@ -12,6 +17,19 @@ class ViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+        cls.small_gif = (
+            b"\x47\x49\x46\x38\x39\x61\x02\x00"
+            b"\x01\x00\x80\x00\x00\x00\x00\x00"
+            b"\xFF\xFF\xFF\x21\xF9\x04\x00\x00"
+            b"\x00\x00\x00\x2C\x00\x00\x00\x00"
+            b"\x02\x00\x01\x00\x00\x02\x02\x0C"
+            b"\x0A\x00\x3B"
+        )
+
+        uploaded = SimpleUploadedFile(
+            name='small.gif', content=cls.small_gif, content_type='image/gif'
+        )
         cls.user = User.objects.create_user(username='user')
         cls.user_2 = User.objects.create_user(username='user_2')
         cls.author = User.objects.create_user(username='Bob')
@@ -28,8 +46,13 @@ class ViewsTests(TestCase):
                 text='текст',
                 author_id=cls.user.id,
                 group_id=cls.group.id,
-                image='posts/p1.jpg',
+                image=uploaded,
             )
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
 
     def setUp(self):
         self.auth_client = Client()
@@ -185,7 +208,7 @@ class ViewsTests(TestCase):
         resp = self.quest_client.get(reverse('posts:index'))
         self.assertNotEqual(content, resp.content)
 
-    def test_user_can_follow(self):
+    def test_auth_user_can_follow(self):
         """Возможность подписки авторизованным пользователем."""
         self.auth_client.post(
             reverse("posts:profile_follow", args=[self.author]), follow=True
@@ -195,6 +218,19 @@ class ViewsTests(TestCase):
         self.assertEqual(follow.author, self.author)
         self.assertEqual(follow.user, self.user)
 
+    def test_quest_follow(self):
+        """
+        Неавторизованный пользователь не может подписываться на авторов.
+        """
+        resp = self.quest_client.post(
+            reverse("posts:profile_follow", args=[self.author]),
+            follow=True,
+        )
+        self.assertRedirects(
+            resp,
+            f'/auth/login/?next=/{self.author}/follow/',
+        )
+
     def test_new_post_for_followers(self):
         """
         Новая запись пользователя появляется в ленте тех,
@@ -202,12 +238,9 @@ class ViewsTests(TestCase):
         кто не подписан на него.
         """
         Follow.objects.create(user=self.user, author=self.author)
-        form_data = {
-            'text': 'New Post',
-            'author_id': self.author.id,
-            'group_id': self.group.id,
-        }
-        self.Bob.post(reverse('posts:new_post'), data=form_data, follow=True)
+        Post.objects.create(
+            text='New Post', author_id=self.author.id, group_id=self.group.id
+        )
         first_post = Post.objects.first()
         resp = self.auth_client.get(reverse('posts:follow_index'))
         resp_2 = self.auth_client_2.get(reverse('posts:follow_index'))
@@ -222,9 +255,7 @@ class ViewsTests(TestCase):
                 'posts:add_comment', args=[self.user.username, self.post.id]
             ),
             data={
-                'post': self.post.id,
-                'author_id': self.user.id,
-                'text': 'New comment',
+                'text': 'New comment'
             },
             follow=True,
         )
