@@ -1,13 +1,12 @@
 import shutil
 import tempfile
-
 from http import HTTPStatus
 
 from django import forms
 from django.conf import settings
 from django.core.cache import cache
-from django.test import Client, TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from posts.models import Comment, Follow, Group, Post, User
@@ -223,13 +222,9 @@ class ViewsTests(TestCase):
         Неавторизованный пользователь не может подписываться на авторов.
         """
         resp = self.quest_client.post(
-            reverse("posts:profile_follow", args=[self.author]),
-            follow=True,
+            reverse("posts:profile_follow", args=[self.author]), follow=True
         )
-        self.assertRedirects(
-            resp,
-            f'/auth/login/?next=/{self.author}/follow/',
-        )
+        self.assertRedirects(resp, f'/auth/login/?next=/{self.author}/follow/')
 
     def test_new_post_for_followers(self):
         """
@@ -254,9 +249,7 @@ class ViewsTests(TestCase):
             reverse(
                 'posts:add_comment', args=[self.user.username, self.post.id]
             ),
-            data={
-                'text': 'New comment'
-            },
+            data={'text': 'New comment'},
             follow=True,
         )
         comment = resp.context['comments'].first()

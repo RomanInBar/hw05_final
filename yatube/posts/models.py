@@ -62,11 +62,9 @@ class Follow(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'author'],
-                name='unique_follow'
+                fields=['user', 'author'], name='unique_follow'
             ),
             models.CheckConstraint(
-                check=~Q('user', 'author'),
-                name='user_not_author'
-            )
+                check=~Q('user', 'author'), name='user_not_author'
+            ),
         ]
