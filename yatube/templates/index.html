@@ -7,11 +7,11 @@
 
 {% block content %}
     {% include "posts/includes/menu.html" with index=True%}
-    {% cache 20 index_page %}
+    {% cache 20 index_page page%}
     {% for post in page %}    
         {% include "posts/post_item.html" with post=post %}
     {% endfor %}
-    {% include "paginator.html" %}
+    {% include "paginator.html"%}
     {% endcache %}
 {% endblock %}
 

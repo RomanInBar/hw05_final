@@ -54,6 +54,7 @@ class ViewsTests(TestCase):
         super().tearDownClass()
 
     def setUp(self):
+        cache.clear()
         self.auth_client = Client()
         self.auth_client_2 = Client()
         self.quest_client = Client()
@@ -210,7 +211,7 @@ class ViewsTests(TestCase):
     def test_auth_user_can_follow(self):
         """Возможность подписки авторизованным пользователем."""
         self.auth_client.post(
-            reverse("posts:profile_follow", args=[self.author]), follow=True
+            reverse('posts:profile_follow', args=[self.author]), follow=True
         )
         follow = Follow.objects.first()
         self.assertEqual(Follow.objects.count(), 1)
@@ -222,9 +223,10 @@ class ViewsTests(TestCase):
         Неавторизованный пользователь не может подписываться на авторов.
         """
         resp = self.quest_client.post(
-            reverse("posts:profile_follow", args=[self.author]), follow=True
+            reverse('posts:profile_follow', args=[self.author]), follow=True
         )
         self.assertRedirects(resp, f'/auth/login/?next=/{self.author}/follow/')
+        self.assertFalse(Follow.objects.count())
 
     def test_new_post_for_followers(self):
         """
@@ -238,7 +240,7 @@ class ViewsTests(TestCase):
         )
         first_post = Post.objects.first()
         resp = self.auth_client.get(reverse('posts:follow_index'))
-        resp_2 = self.auth_client_2.get(reverse('posts:follow_index'))
+        resp_2 = self.auth_client_2.get('/follow/')
         post = resp.context['page'].object_list[0]
         post_2 = resp_2.context['page'].object_list
         self.assertEqual(post, first_post)
@@ -269,3 +271,16 @@ class ViewsTests(TestCase):
             resp,
             f'/auth/login/?next=/{self.user.username}/{self.post.id}/comment',
         )
+        self.assertFalse(Comment.objects.count())
+
+    def test_profile_unfollow(self):
+        self.auth_client.post(
+            reverse('posts:profile_follow', args=[self.author]), follow=True
+        )
+        follow = Follow.objects.count()
+        self.assertTrue(follow)
+        self.auth_client.post(
+            reverse('posts:profile_unfollow', args=[self.author]), follow=True
+        )
+        follow = Follow.objects.count()
+        self.assertFalse(follow)
