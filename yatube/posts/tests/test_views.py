@@ -230,9 +230,8 @@ class ViewsTests(TestCase):
 
     def test_new_post_for_followers(self):
         """
-        Новая запись пользователя появляется в ленте тех,
-        кто на него подписан и не появляется в ленте тех,
-        кто не подписан на него.
+        Новая запись пользователя появляется
+        в ленте подписчиков.
         """
         Follow.objects.create(user=self.user, author=self.author)
         Post.objects.create(
@@ -240,11 +239,21 @@ class ViewsTests(TestCase):
         )
         first_post = Post.objects.first()
         resp = self.auth_client.get(reverse('posts:follow_index'))
-        resp_2 = self.auth_client_2.get('/follow/')
         post = resp.context['page'].object_list[0]
-        post_2 = resp_2.context['page'].object_list
         self.assertEqual(post, first_post)
-        self.assertEqual(len(post_2), 0)
+
+    def test_new_post_for_quest(self):
+        """
+        Новая запись не появляется в ленте тех,
+        кто не подписан на автора.
+        """
+        Follow.objects.create(user=self.user, author=self.author)
+        Post.objects.create(
+            text='New Post', author_id=self.author.id, group_id=self.group.id
+        )
+        resp = self.auth_client_2.get(reverse('posts:follow_index'))
+        post = resp.context['page'].object_list
+        self.assertEqual(len(post), 0)
 
     def test_auth_client_can_comment(self):
         resp = self.auth_client_2.post(
@@ -274,13 +283,10 @@ class ViewsTests(TestCase):
         self.assertFalse(Comment.objects.count())
 
     def test_profile_unfollow(self):
-        self.auth_client.post(
-            reverse('posts:profile_follow', args=[self.author]), follow=True
-        )
-        follow = Follow.objects.count()
-        self.assertTrue(follow)
+        Follow.objects.create(user=self.user, author=self.author)
+        count = Follow.objects.count()
         self.auth_client.post(
             reverse('posts:profile_unfollow', args=[self.author]), follow=True
         )
         follow = Follow.objects.count()
-        self.assertFalse(follow)
+        self.assertEqual(follow, count - 1)
