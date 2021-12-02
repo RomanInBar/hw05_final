@@ -63,7 +63,7 @@ def new_post(request):
 def post_edit(request, username, post_id):
     post = get_object_or_404(Post, author__username=username, id=post_id)
     if post.author != request.user:
-        redirect('posts:post', username, post_id)
+        return redirect('posts:post', username, post_id)
     form = PostForm(request.POST or None, request.FILES or None, instance=post)
     if form.is_valid():
         form.save()
@@ -123,4 +123,11 @@ def profile_unfollow(request, username):
         user=request.user, author__username=username
     )
     follow.delete()
+    return redirect('posts:profile', username)
+
+@login_required
+def post_delete(request, username, post_id):
+    if username != request.user.username:
+        return redirect('/')
+    get_object_or_404(Post, id=post_id).delete()
     return redirect('posts:profile', username)

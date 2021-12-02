@@ -22,9 +22,12 @@ urlpatterns = [
     path(
         '<str:username>/<int:post_id>/edit/', views.post_edit, name='post_edit'
     ),
+    path('<str:username>/<int:post_id>/delete/', views.post_delete, name='post_delete'),
     path(
         '<str:username>/<int:post_id>/comment',
         views.add_comment,
         name='add_comment',
     ),
 ]
+
+af = collections.Counter()

@@ -31,6 +31,9 @@
             <a class="btn btn-sm btn-info" href="{% url 'posts:post_edit' post.author.username post.id %}" role="button">
               Редактировать
             </a>
+            <a class="btn btn-sm btn-primary" href="{% url 'posts:post_delete' post.author.username post.id %}" role="button">
+              Удалить
+            </a>
           {% endif %}
         </div>
         <small class="text-muted">{{ post.pub_date|date:'d M Y' }}</small>
